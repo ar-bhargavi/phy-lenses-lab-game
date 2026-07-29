@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>🔬 Lenses Lab — Selina Grade X Physics</title>
+<style>
+  :root{
+    --bg:#0f1724; --panel:#172231; --ink:#e6edf3; --muted:#8aa0b4;
+    --accent:#4cc9f0; --good:#2ecc71; --bad:#ff6b6b; --warn:#f4d35e;
+    --ray1:#ff9f1c; --ray2:#2ec4b6; --ray3:#e71d36;
+    --obj:#ffd166; --real:#4cc9f0; --virt:#b388ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);}
+  header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;
+         background:linear-gradient(90deg,#1b2a3d,#0f1724);border-bottom:1px solid #243447;}
+  header h1{margin:0;font-size:20px;letter-spacing:.5px}
+  header h1 span{color:var(--accent)}
+  .stats{font-size:14px;color:var(--muted)}
+  .stats b{color:var(--ink)}
+  .layout{display:grid;grid-template-columns:1fr 300px;gap:14px;padding:14px;}
+  @media(max-width:1000px){.layout{grid-template-columns:1fr}}
+  .bench-wrap{background:var(--panel);border-radius:12px;padding:10px;
+              box-shadow:0 4px 18px rgba(0,0,0,.4);}
+  svg{width:100%;height:auto;display:block;background:#0b1220;border-radius:8px;}
+  .side{display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--panel);border-radius:12px;padding:14px;
+        box-shadow:0 4px 18px rgba(0,0,0,.4);}
+  .card h3{margin:0 0 10px;font-size:14px;color:var(--accent);
+           text-transform:uppercase;letter-spacing:1px;}
+  .row{display:flex;align-items:center;justify-content:space-between;margin:6px 0;font-size:13px;}
+  .row label{color:var(--muted)}
+  .row b{color:var(--ink);font-variant-numeric:tabular-nums}
+  button{background:#243447;color:var(--ink);border:1px solid #2f4359;
+         padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;
+         transition:.2s;}
+  button:hover{background:#2f4359;border-color:var(--accent)}
+  button.active{background:var(--accent);color:#0b1220;border-color:var(--accent)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .formula{font-family:'Cambria Math','Times New Roman',serif;font-size:15px;
+           background:#0b1220;padding:8px 10px;border-radius:6px;
+           border-left:3px solid var(--accent);margin-top:6px;}
+  .nature{padding:8px;border-radius:6px;background:#0b1220;font-size:13px;
+          border-left:3px solid var(--good);margin-top:6px;line-height:1.5}
+  .challenge{background:linear-gradient(135deg,#1b2a3d,#0f1724);
+             border:1px dashed var(--warn);padding:10px;border-radius:8px;
+             font-size:13px;margin-bottom:8px}
+  .challenge b{color:var(--warn)}
+  .feedback{margin-top:8px;padding:8px;border-radius:6px;font-size:13px;
+            text-align:center;font-weight:600;min-height:32px}
+  .feedback.good{background:rgba(46,204,113,.15);color:var(--good)}
+  .feedback.bad{background:rgba(255,107,107,.15);color:var(--bad)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:15px;color:var(--ink);
+          margin-top:10px;padding:8px 10px;background:#0b1220;border-radius:8px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+  .dot{width:14px;height:14px;border-radius:50%;display:inline-block;
+       box-shadow:0 0 6px currentColor;}
+  .handle{cursor:grab}
+  .handle:active{cursor:grabbing}
+  .axis{stroke:#2f4359;stroke-width:1;stroke-dasharray:4 4}
+  .lens{fill:rgba(130,200,240,0.55);stroke:#1a6fa0;stroke-width:2;stroke-linejoin:round}
+  .object-line{stroke:var(--obj);stroke-width:3}
+  .image-line{stroke-width:3}
+  .screen-rect{fill:rgba(255,255,255,.08);stroke:#fff;stroke-width:1.5;stroke-dasharray:3 3}
+  .ray{fill:none;stroke-width:1.8;opacity:.85}
+  .ray.dashed{stroke-dasharray:5 4;opacity:.55}
+  .focus-mark{fill:var(--warn);font-size:11px;font-weight:700}
+  .label{fill:var(--muted);font-size:11px}
+  .tip{font-size:11px;color:var(--muted);line-height:1.4;margin-top:6px}
+  
+  /* Portrait mode overlay */
+  #portraitWarning{
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(15,23,36,0.98);z-index:9999;flex-direction:column;
+    justify-content:center;align-items:center;text-align:center;padding:20px;
+  }
+  #portraitWarning.show{display:flex}
+  #portraitWarning .icon{font-size:64px;margin-bottom:20px}
+  #portraitWarning h2{color:var(--accent);margin:0 0 16px;font-size:24px}
+  #portraitWarning p{color:var(--ink);margin:0 0 24px;font-size:16px;max-width:400px;line-height:1.6}
+  #portraitWarning .rotate-hint{
+    background:var(--panel);padding:16px 24px;border-radius:12px;
+    border:2px solid var(--accent);margin-top:16px;
+  }
+  #portraitWarning .rotate-hint b{color:var(--warn);font-size:18px}
+  
+  /* Better mobile support */
+  @media(max-width:768px){
+    header h1{font-size:16px}
+    .stats{font-size:12px}
+    .card h3{font-size:12px}
+    .row{font-size:12px}
+    button{padding:10px 14px;font-size:14px}
+    .legend{gap:10px;font-size:13px}
+    .dot{width:12px;height:12px}
+  }
+  
+  @media(max-width:600px){
+    .layout{padding:8px}
+    .bench-wrap{padding:6px}
+    svg{max-height:50vh}
+    .legend{flex-direction:column;gap:6px}
+    .btn-row{flex-direction:column;width:100%}
+    .btn-row button{width:100%;margin:2px 0}
+  }
+  
+  /* Prevent text selection during drag */
+  svg, .handle{user-select:none;-webkit-user-select:none;touch-action:none}
+  
+  /* Landscape only - hide content in portrait */
+  @media screen and (orientation:portrait){
+    #mainContent{filter:blur(4px);pointer-events:none;user-select:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- Portrait Mode Warning Overlay -->
+<div id="portraitWarning">
+  <div class="icon">📱</div>
+  <h2>Rotate Your Device</h2>
+  <p>This interactive optics lab works best in <b>landscape mode</b>. Please rotate your phone to continue.</p>
+  <div class="rotate-hint">
+    <b>↻ Turn your phone sideways</b>
+  </div>
+</div>
+
+<div id="mainContent">
+<header>
+  <h1>🔬 <span>Lenses Lab</span> · Selina Grade X · Ch. 5</h1>
+  <div class="stats">Score: <b id="score">0</b> &nbsp;|&nbsp; Streak: <b id="streak">0</b></div>
+</header>
+
+<div class="layout">
+  <div class="bench-wrap">
+    <svg id="bench" viewBox="0 0 900 360" preserveAspectRatio="xMidYMid meet">
+      <line class="axis" x1="0" y1="180" x2="900" y2="180"/>
+      <g id="ticks"></g>
+      <g id="markers"></g>
+      <g id="rays"></g>
+      <g id="lens"></g>
+      <g id="screen" class="handle"></g>
+      <g id="object" class="handle"></g>
+      <g id="image"></g>
+      <g id="labels"></g>
+    </svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--ray1)"></i>Parallel → Focus</span>
+      <span><i class="dot" style="background:var(--ray2)"></i>Through O (straight)</span>
+      <span><i class="dot" style="background:var(--ray3)"></i>Through F → Parallel</span>
+      <span><i class="dot" style="background:var(--obj)"></i>Object</span>
+      <span><i class="dot" style="background:var(--real)"></i>Real image</span>
+      <span><i class="dot" style="background:var(--virt)"></i>Virtual image</span>
+    </div>
+  </div>
+
+  <div class="side">
+
+    <div class="card">
+      <h3>🎛 Controls</h3>
+      <div class="row"><label>Lens type</label>
+        <div class="btn-row">
+          <button id="btnConvex" class="active">Convex</button>
+          <button id="btnConcave">Concave</button>
+        </div>
+      </div>
+      <div class="row"><label>Focal length <b id="fVal">100 px</b></label></div>
+      <input type="range" id="fSlider" min="50" max="160" value="100"/>
+      <div class="row"><label>Show rays</label>
+        <div class="btn-row">
+          <button id="btnRays" class="active">On</button>
+        </div>
+      </div>
+      <div class="row"><label>Show screen</label>
+        <div class="btn-row">
+          <button id="btnScreen" class="active">On</button>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button id="btnReset">↺ Reset</button>
+        <button id="btnChallenge">🎯 Challenge Mode</button>
+      </div>
+      <div class="tip">💡 Drag the yellow object arrow and the dashed screen along the axis. Watch the image, rays and formula update live.</div>
+    </div>
+
+    <div class="card">
+      <h3> Live Readings</h3>
+      <div class="row"><label>Object distance |u|</label><b id="uVal">—</b></div>
+      <div class="row"><label>Image distance |v|</label><b id="vVal">—</b></div>
+      <div class="row"><label>Focal length f</label><b id="fRead">—</b></div>
+      <div class="row"><label>Magnification m</label><b id="mVal">—</b></div>
+      <div class="formula" id="formula">1/f = 1/v − 1/u</div>
+      <div class="nature" id="nature">Move the object to begin…</div>
+    </div>
+
+    <div class="card" id="challengeCard" style="display:none">
+      <h3>🎯 Challenge</h3>
+      <div class="challenge" id="challengeText">—</div>
+      <button id="btnCheck" style="width:100%">✔ Check my setup</button>
+      <button id="btnNext" style="width:100%;margin-top:6px">⏭ Skip / Next</button>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="card">
+      <h3>📘 Quick Theory</h3>
+      <div class="tip" style="line-height:1.55">
+        <b>Convex lens</b> — 6 cases:<br>
+        • u &gt; 2F → real, inverted, diminished (F &lt; v &lt; 2F)<br>
+        • u = 2F → real, inverted, same size (v = 2F)<br>
+        • F &lt; u &lt; 2F → real, inverted, magnified (v &gt; 2F)<br>
+        • u = F → image at ∞<br>
+        • u &lt; F → <i>virtual, erect, magnified</i> (same side)<br><br>
+        <b>Concave lens</b> — always virtual, erect, diminished.<br><br>
+        <b>Sign convention (Cartesian):</b> distances measured from O; against incident light → negative.
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+const AXIS_Y = 180;
+const O_X    = 450;
+const OBJ_H  = 60;
+const SCREEN_H = 120;
+const LENS_HALF_WIDTH = 14;
+
+const state = {
+  lensType: 'convex',
+  f: 100,
+  objX: 200,
+  screenX: 700,
+  showRays: true,
+  showScreen: true,
+  challengeMode: false,
+  challenge: null,
+  score: 0,
+  streak: 0
+};
+
+const svg        = document.getElementById('bench');
+const gTicks     = document.getElementById('ticks');
+const gMarkers   = document.getElementById('markers');
+const gRays      = document.getElementById('rays');
+const gLens      = document.getElementById('lens');
+const gScreen    = document.getElementById('screen');
+const gObject    = document.getElementById('object');
+const gImage     = document.getElementById('image');
+const gLabels    = document.getElementById('labels');
+
+function el(name, attrs={}){
+  const e = document.createElementNS(SVG_NS, name);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clear(g){ while(g.firstChild) g.removeChild(g.firstChild); }
+
+function drawTicks(){
+  clear(gTicks);
+  for(let x=0;x<=900;x+=50){
+    gTicks.appendChild(el('line',{x1:x,y1:176,x2:x,y2:184,stroke:'#2f4359','stroke-width':1}));
+  }
+}
+function drawMarkers(){
+  clear(gMarkers);
+  const f = state.f;
+  const pts = [
+    {x:O_X-f,   t:'F₁'}, {x:O_X+f,   t:'F₂'},
+    {x:O_X-2*f, t:'2F₁'},{x:O_X+2*f, t:'2F₂'}
+  ];
+  pts.forEach(p=>{
+    if(p.x<0||p.x>900) return;
+    gMarkers.appendChild(el('circle',{cx:p.x,cy:180,r:3,fill:'#f4d35e'}));
+    const txt = el('text',{x:p.x,y:198,'text-anchor':'middle',class:'focus-mark'});
+    txt.textContent = p.t;
+    gMarkers.appendChild(txt);
+  });
+  const o = el('text',{x:O_X,y:198,'text-anchor':'middle',class:'focus-mark'});
+  o.textContent='O'; gMarkers.appendChild(o);
+}
+
+function drawLens(){
+  clear(gLens);
+  if(state.lensType==='convex'){
+    const bulge = LENS_HALF_WIDTH * 2;
+    gLens.appendChild(el('path',{
+      d:`M ${O_X} 60 Q ${O_X-bulge} 180 ${O_X} 300`,
+      class:'lens', fill:'rgba(130,200,240,0.55)'
+    }));
+    gLens.appendChild(el('path',{
+      d:`M ${O_X} 60 Q ${O_X+bulge} 180 ${O_X} 300`,
+      class:'lens', fill:'rgba(130,200,240,0.55)'
+    }));
+    gLens.appendChild(el('polygon',{
+      points:`${O_X-7},66 ${O_X+7},66 ${O_X},54`, fill:'#1a6fa0'}));
+    gLens.appendChild(el('polygon',{
+      points:`${O_X-7},294 ${O_X+7},294 ${O_X},306`, fill:'#1a6fa0'}));
+  } else {
+    const W = LENS_HALF_WIDTH;
+    const pinch = 3;
+    const d = `M ${O_X-W} 60 L ${O_X+W} 60 Q ${O_X+pinch} 180 ${O_X+W} 300 L ${O_X-W} 300 Q ${O_X-pinch} 180 ${O_X-W} 60 Z`;
+    gLens.appendChild(el('path',{d, class:'lens'}));
+    gLens.appendChild(el('line',{
+      x1:O_X-10,y1:60,x2:O_X+10,y2:60,
+      stroke:'#1a6fa0','stroke-width':2.5,'stroke-linecap':'round'}));
+    gLens.appendChild(el('line',{
+      x1:O_X-10,y1:300,x2:O_X+10,y2:300,
+      stroke:'#1a6fa0','stroke-width':2.5,'stroke-linecap':'round'}));
+  }
+}
+
+function drawObject(){
+  clear(gObject);
+  const x = state.objX, y1 = AXIS_Y, y2 = AXIS_Y - OBJ_H;
+  gObject.appendChild(el('line',{x1:x,y1:y1,x2:x,y2:y2,class:'object-line'}));
+  gObject.appendChild(el('polygon',{
+    points:`${x-6},${y2+8} ${x+6},${y2+8} ${x},${y2}`,
+    fill:'#ffd166'
+  }));
+  const h = el('rect',{x:x-14,y:y2-6,width:28,height:OBJ_H+12,fill:'transparent'});
+  gObject.appendChild(h);
+}
+function drawScreen(){
+  clear(gScreen);
+  if(!state.showScreen) return;
+  const x = state.screenX;
+  gScreen.appendChild(el('rect',{
+    x:x-4,y:AXIS_Y-SCREEN_H/2,width:8,height:SCREEN_H,class:'screen-rect'
+  }));
+  const h = el('rect',{x:x-14,y:AXIS_Y-SCREEN_H/2-6,width:28,height:SCREEN_H+12,fill:'transparent'});
+  gScreen.appendChild(h);
+}
+
+function computeImage(){
+  const u = -(O_X - state.objX);
+  const fSigned = (state.lensType==='convex') ? state.f : -state.f;
+  let v, m, imgX, imgH, virtual=false, atInfinity=false;
+  const denom = 1/fSigned + 1/u;
+  if(Math.abs(denom) < 1e-6){
+    atInfinity = true;
+    v = Infinity; m = Infinity; imgX = null; imgH = null;
+  } else {
+    v = 1/denom;
+    m = v/u;
+    imgX = O_X + v;
+    imgH = m * OBJ_H;
+    virtual = (v < 0);
+  }
+  return {u, f:fSigned, v, m, imgX, imgH, virtual, atInfinity};
+}
+
+function drawRays(info){
+  clear(gRays);
+  if(!state.showRays) return;
+  const {u, f:fSigned, v, virtual, atInfinity} = info;
+  const ox = state.objX;
+  const oy = AXIS_Y - OBJ_H;
+
+  const ray1Color = '#ff9f1c';
+  gRays.appendChild(el('line',{x1:ox,y1:oy,x2:O_X,y2:oy,stroke:ray1Color,class:'ray'}));
+  if(!atInfinity){
+    if(state.lensType==='convex'){
+      const dx = fSigned, dy = AXIS_Y - oy;
+      const ext = extendRay(O_X, oy, dx, dy, true);
+      gRays.appendChild(el('line',{x1:O_X,y1:oy,x2:ext.x,y2:ext.y,stroke:ray1Color,class:'ray'}));
+    } else {
+      const F1x = O_X - state.f;
+      const dx = O_X - F1x, dy = oy - AXIS_Y;
+      const ext = extendRay(O_X, oy, dx, dy, true);
+      gRays.appendChild(el('line',{x1:O_X,y1:oy,x2:ext.x,y2:ext.y,stroke:ray1Color,class:'ray'}));
+      gRays.appendChild(el('line',{x1:O_X,y1:oy,x2:F1x,y2:AXIS_Y,
+        stroke:ray1Color,class:'ray dashed'}));
+    }
+  }
+
+  const ray2Color = '#2ec4b6';
+  const dx2 = O_X - ox, dy2 = AXIS_Y - oy;
+  const ext2 = extendRay(ox, oy, dx2, dy2, true);
+  gRays.appendChild(el('line',{x1:ox,y1:oy,x2:ext2.x,y2:ext2.y,stroke:ray2Color,class:'ray'}));
+
+  const ray3Color = '#e71d36';
+  const F1x = O_X - state.f;
+  if(state.lensType==='convex'){
+    const dx3 = F1x - ox, dy3 = AXIS_Y - oy;
+    const t = (O_X - ox)/dx3;
+    const yAtLens = oy + t*dy3;
+    gRays.appendChild(el('line',{x1:ox,y1:oy,x2:O_X,y2:yAtLens,stroke:ray3Color,class:'ray'}));
+    gRays.appendChild(el('line',{x1:O_X,y1:yAtLens,x2:900,y2:yAtLens,stroke:ray3Color,class:'ray'}));
+  } else {
+    const F2x = O_X + state.f;
+    const dx3 = F2x - ox, dy3 = AXIS_Y - oy;
+    const t = (O_X - ox)/dx3;
+    const yAtLens = oy + t*dy3;
+    gRays.appendChild(el('line',{x1:ox,y1:oy,x2:O_X,y2:yAtLens,stroke:ray3Color,class:'ray'}));
+    gRays.appendChild(el('line',{x1:O_X,y1:yAtLens,x2:900,y2:yAtLens,stroke:ray3Color,class:'ray'}));
+    gRays.appendChild(el('line',{x1:O_X,y1:yAtLens,x2:F2x,y2:AXIS_Y,
+      stroke:ray3Color,class:'ray dashed'}));
+  }
+}
+function extendRay(x0,y0,dx,dy,toRight){
+  const targetX = toRight ? 900 : 0;
+  if(dx===0) return {x:x0,y:y0};
+  const t = (targetX - x0)/dx;
+  return {x:targetX, y:y0 + t*dy};
+}
+
+function drawImage(info){
+  clear(gImage);
+  if(info.atInfinity) return;
+  const {imgX, imgH, virtual} = info;
+  if(imgX===null || imgX<-50 || imgX>950) return;
+  const color = virtual ? '#b388ff' : '#4cc9f0';
+  const y1 = AXIS_Y;
+  const y2 = AXIS_Y - imgH;
+  gImage.appendChild(el('line',{x1:imgX,y1:y1,x2:imgX,y2:y2,
+    stroke:color,class:'image-line'}));
+  const dir = imgH>=0 ? -1 : 1;
+  gImage.appendChild(el('polygon',{
+    points:`${imgX-6},${y2-dir*8} ${imgX+6},${y2-dir*8} ${imgX},${y2}`,
+    fill:color
+  }));
+  if(virtual){
+    gImage.appendChild(el('line',{x1:imgX,y1:y1,x2:imgX,y2:y2,
+      stroke:color,'stroke-dasharray':'4 3','stroke-width':1,fill:'none'}));
+  }
+}
+
+function updateInfo(info){
+  const {u,f:fSigned,v,m,virtual,atInfinity} = info;
+  document.getElementById('uVal').textContent = Math.abs(u).toFixed(0) + ' px  (u = ' + u.toFixed(0) + ')';
+  document.getElementById('vVal').textContent = atInfinity ? '∞' :
+    (Math.abs(v).toFixed(0) + ' px  (v = ' + v.toFixed(0) + ')');
+  document.getElementById('fRead').textContent = fSigned + ' px';
+  document.getElementById('mVal').textContent = atInfinity ? '' : m.toFixed(2);
+
+  if(!atInfinity && Math.abs(v)>1e-6){
+    const lhs = (1/fSigned).toFixed(4);
+    const rhs = (1/v - 1/u).toFixed(4);
+    document.getElementById('formula').innerHTML =
+      `1/f = 1/v − 1/u<br>1/${fSigned} = 1/${v.toFixed(1)} − 1/${u.toFixed(0)}<br>` +
+      `<span style="color:var(--good)">${lhs} ≈ ${rhs} ✔</span>`;
+  } else {
+    document.getElementById('formula').innerHTML = '1/f = 1/v − 1/u';
+  }
+
+  let nature = '';
+  if(atInfinity){
+    nature = ' Image at <b>infinity</b> — object is at the focus.';
+  } else {
+    const size = Math.abs(m)<0.98 ? 'diminished' : Math.abs(m)>1.02 ? 'magnified' : 'same size';
+    const erect = m>0 ? 'erect' : 'inverted';
+    const real  = virtual ? 'virtual (same side as object)' : 'real (opposite side)';
+    nature = `• <b>${real}</b><br>• <b>${erect}</b><br>• <b>${size}</b> (|m| = ${Math.abs(m).toFixed(2)})`;
+    if(state.lensType==='convex'){
+      const au = Math.abs(u);
+      let caseLabel='';
+      if(au > 2*state.f+1)        caseLabel='Case: u > 2F₁';
+      else if(au > 2*state.f-1 && au < 2*state.f+1) caseLabel='Case: u = 2F₁';
+      else if(au > state.f+1)     caseLabel='Case: F₁ < u < 2F₁';
+      else if(au > state.f-1 && au < state.f+1) caseLabel='Case: u = F₁';
+      else                        caseLabel='Case: u < F₁ (virtual image)';
+      nature = `<b>${caseLabel}</b><br>` + nature;
+    } else {
+      nature = `<b>Concave lens — always virtual, erect, diminished</b><br>` + nature;
+    }
+  }
+  document.getElementById('nature').innerHTML = nature;
+}
+
+function render(){
+  drawMarkers();
+  drawLens();
+  drawObject();
+  drawScreen();
+  const info = computeImage();
+  drawRays(info);
+  drawImage(info);
+  updateInfo(info);
+  checkChallenge(info);
+}
+
+function svgPoint(evt){
+  const pt = svg.createSVGPoint();
+  const src = evt.touches ? evt.touches[0] : evt;
+  pt.x = src.clientX; pt.y = src.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+function makeDraggable(group, onMove){
+  let dragging=false;
+  const start = e=>{ dragging=true; e.preventDefault(); };
+  const move  = e=>{
+    if(!dragging) return;
+    const p = svgPoint(e);
+    onMove(p.x, p.y);
+    render();
+  };
+  const end = ()=>{ dragging=false; };
+  group.addEventListener('mousedown',start);
+  group.addEventListener('touchstart',start,{passive:false});
+  window.addEventListener('mousemove',move);
+  window.addEventListener('touchmove',move,{passive:false});
+  window.addEventListener('mouseup',end);
+  window.addEventListener('touchend',end);
+}
+makeDraggable(gObject, x=>{ state.objX = Math.max(40, Math.min(O_X - LENS_HALF_WIDTH - 4, x)); });
+makeDraggable(gScreen, x=>{ state.screenX = Math.max(O_X + LENS_HALF_WIDTH + 4, Math.min(880, x)); });
+
+document.getElementById('btnConvex').onclick  = ()=>{
+  state.lensType='convex';
+  document.getElementById('btnConvex').classList.add('active');
+  document.getElementById('btnConcave').classList.remove('active');
+  render();
+};
+document.getElementById('btnConcave').onclick = ()=>{
+  state.lensType='concave';
+  document.getElementById('btnConcave').classList.add('active');
+  document.getElementById('btnConvex').classList.remove('active');
+  render();
+};
+document.getElementById('fSlider').oninput = e=>{
+  state.f = +e.target.value;
+  document.getElementById('fVal').textContent = state.f + ' px';
+  render();
+};
+document.getElementById('btnRays').onclick = e=>{
+  state.showRays = !state.showRays;
+  e.target.classList.toggle('active');
+  render();
+};
+document.getElementById('btnScreen').onclick = e=>{
+  state.showScreen = !state.showScreen;
+  e.target.classList.toggle('active');
+  render();
+};
+document.getElementById('btnReset').onclick = ()=>{
+  state.objX = 200; state.screenX = 700;
+  state.f = 100; document.getElementById('fSlider').value = 100;
+  document.getElementById('fVal').textContent = '100 px';
+  render();
+};
+
+const CHALLENGES = [
+  {q:"Get a <b>real, inverted, same-size</b> image.",
+   check:info=>!info.virtual && !info.atInfinity && Math.abs(Math.abs(info.m)-1)<0.08,
+   hint:"Place the object at 2F₁."},
+  {q:"Get a <b>real, inverted, magnified</b> image.",
+   check:info=>!info.virtual && !info.atInfinity && Math.abs(info.m)>1.05,
+   hint:"Place the object between F₁ and 2F₁."},
+  {q:"Get a <b>real, inverted, diminished</b> image.",
+   check:info=>!info.virtual && !info.atInfinity && Math.abs(info.m)<0.95,
+   hint:"Place the object beyond 2F₁."},
+  {q:"Get a <b>virtual, erect, magnified</b> image (convex only).",
+   check:info=>info.virtual && Math.abs(info.m)>1.05,
+   hint:"Place the object between O and F₁."},
+  {q:"Send the image to <b>infinity</b>.",
+   check:info=>info.atInfinity,
+   hint:"Place the object exactly at F₁."},
+  {q:"Catch the real image on the <b>screen</b> (within 8 px).",
+   check:info=>{
+     if(info.virtual||info.atInfinity) return false;
+     return Math.abs(info.imgX - state.screenX) < 8;
+   },
+   hint:"Move the screen to where the rays actually meet."},
+  {q:"Using a <b>concave lens</b>, get a virtual, erect, diminished image.",
+   check:info=>state.lensType==='concave' && info.virtual && Math.abs(info.m)<0.98,
+   hint:"Switch to concave; any object position works!"},
+  {q:"Make |m| = <b>exactly 0.5</b> (±0.05).",
+   check:info=>!info.atInfinity && Math.abs(Math.abs(info.m)-0.5)<0.05,
+   hint:"For convex, |m|=0.5 means u = 3f."}
+];
+function newChallenge(){
+  state.challenge = CHALLENGES[Math.floor(Math.random()*CHALLENGES.length)];
+  document.getElementById('challengeText').innerHTML = state.challenge.q;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+}
+function checkChallenge(info){
+  if(!state.challengeMode || !state.challenge) return;
+}
+document.getElementById('btnChallenge').onclick = ()=>{
+  state.challengeMode = !state.challengeMode;
+  document.getElementById('challengeCard').style.display = state.challengeMode?'block':'none';
+  document.getElementById('btnChallenge').classList.toggle('active', state.challengeMode);
+  if(state.challengeMode) newChallenge();
+};
+document.getElementById('btnCheck').onclick = ()=>{
+  if(!state.challenge) return;
+  const info = computeImage();
+  const fb = document.getElementById('feedback');
+  if(state.challenge.check(info)){
+    state.score += 10 + state.streak*2;
+    state.streak++;
+    fb.textContent = `✔ Correct! +${10+(state.streak-1)*2} points. ${state.challenge.hint}`;
+    fb.className = 'feedback good';
+    setTimeout(newChallenge, 1400);
+  } else {
+    state.streak = 0;
+    fb.textContent = ` Not quite. Hint: ${state.challenge.hint}`;
+    fb.className = 'feedback bad';
+  }
+  document.getElementById('score').textContent = state.score;
+  document.getElementById('streak').textContent = state.streak;
+};
+document.getElementById('btnNext').onclick = newChallenge;
+
+// Portrait mode detection
+function checkOrientation(){
+  const warning = document.getElementById('portraitWarning');
+  const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+  const isMobile = window.innerWidth < 768;
+  
+  if(isMobile && isPortrait){
+    warning.classList.add('show');
+    document.getElementById('mainContent').style.pointerEvents = 'none';
+  } else {
+    warning.classList.remove('show');
+    document.getElementById('mainContent').style.pointerEvents = 'auto';
+  }
+}
+
+// Listen for orientation changes
+window.addEventListener('orientationchange', checkOrientation);
+window.addEventListener('resize', checkOrientation);
+
+// Initial check
+checkOrientation();
+
+drawTicks();
+render();
+</script>
+</body>
+</html>
